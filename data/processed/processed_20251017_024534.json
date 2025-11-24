@@ -1,0 +1,290 @@
+[
+  {
+    "verbatim_id": "3733843ad819",
+    "vin": "1",
+    "model_year": 2024,
+    "registration_date": "2023-10-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Kona 4dr SUV",
+    "part": "",
+    "problem": "EXT16: Exterior molding/exterior trim - Damaged/scratched at delivery",
+    "trim": "",
+    "verbatim_text": "EXT16: Exterior molding/exterior trim - Damaged/scratched at delivery",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 0
+    }
+  },
+  {
+    "verbatim_id": "b1310f7f6665",
+    "vin": "2",
+    "model_year": 2023,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Ioniq 6 4dr Sdn",
+    "part": "",
+    "problem": "EOD42: Gauges/instrument display - Controls/displays DTU/poorly located",
+    "trim": "",
+    "verbatim_text": "EOD42: Gauges/instrument display - Controls/displays DTU/poorly located",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 1
+    }
+  },
+  {
+    "verbatim_id": "473a8ca55e12",
+    "vin": "3",
+    "model_year": 2025,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Kia",
+    "model": "K5 4dr Sdn",
+    "part": "",
+    "problem": "INT21: Glove/door/trap - Hard to open/close",
+    "trim": "",
+    "verbatim_text": "INT21: Glove/door/trap - Hard to open/close",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 2
+    }
+  },
+  {
+    "verbatim_id": "ea78f743015b",
+    "vin": "4",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Ioniq 6 4dr Sdn",
+    "part": "",
+    "problem": "INFO14: Built-in navigation system - Inaccurate",
+    "trim": "",
+    "verbatim_text": "INFO14: Built-in navigation system - Inaccurate",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 3
+    }
+  },
+  {
+    "verbatim_id": "a730ae0b5e3c",
+    "vin": "5",
+    "model_year": 2025,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Ioniq 6 4dr Sdn",
+    "part": "",
+    "problem": "DRAT8: Forward collision warning/automatic emergency braking - Alerts annoying/bothersome",
+    "trim": "",
+    "verbatim_text": "DRAT8: Forward collision warning/automatic emergency braking - Alerts annoying/bothersome",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 4
+    }
+  },
+  {
+    "verbatim_id": "8b54de359623",
+    "vin": "6",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Kia",
+    "model": "K5 4dr Sdn",
+    "part": "",
+    "problem": "EXT17: Exterior molding/exterior trim - Loose/misaligned/failed clips",
+    "trim": "",
+    "verbatim_text": "EXT17: Exterior molding/exterior trim - Loose/misaligned/failed clips",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 5
+    }
+  },
+  {
+    "verbatim_id": "98e93ae0ec91",
+    "vin": "7",
+    "model_year": 2025,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Genesis",
+    "model": "G70 4dr Sdn",
+    "part": "",
+    "problem": "INFO35: Wireless charging pad - Wrong design/poorly located",
+    "trim": "",
+    "verbatim_text": "INFO35: Wireless charging pad - Wrong design/poorly located",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 6
+    }
+  },
+  {
+    "verbatim_id": "dabc86b489e1",
+    "vin": "8",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Genesis",
+    "model": "G70 4dr Sdn",
+    "part": "",
+    "problem": "INFO18: Built-in WiFi - Frequent warning/connectivity issues",
+    "trim": "",
+    "verbatim_text": "INFO18: Built-in WiFi - Frequent warning/connectivity issues",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 7
+    }
+  },
+  {
+    "verbatim_id": "2dbe6e469ea6",
+    "vin": "9",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Ioniq 6 4dr Sdn",
+    "part": "",
+    "problem": "ECO38: Rear window wiper/wash - Broken/not working",
+    "trim": "",
+    "verbatim_text": "ECO38: Rear window wiper/wash - Broken/not working",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 8
+    }
+  },
+  {
+    "verbatim_id": "635aa170b71b",
+    "vin": "10",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Genesis",
+    "model": "G70 4dr Sdn",
+    "part": "",
+    "problem": "EXTB: Trunk/hatch/tailgate - Handle/latch/release - DTU",
+    "trim": "",
+    "verbatim_text": "EXTB: Trunk/hatch/tailgate - Handle/latch/release - DTU",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 9
+    }
+  },
+  {
+    "verbatim_id": "56edc7b09885",
+    "vin": "11",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Genesis",
+    "model": "G70 4dr Sdn",
+    "part": "",
+    "problem": "DINFO12: Insufficient engine/motor power",
+    "trim": "",
+    "verbatim_text": "DINFO12: Insufficient engine/motor power",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 10
+    }
+  },
+  {
+    "verbatim_id": "a4a10ee86886",
+    "vin": "12",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Santa Fe Hybrid 4dr SUV",
+    "part": "",
+    "problem": "DRAT37: Driving assistance problem",
+    "trim": "",
+    "verbatim_text": "DRAT37: Driving assistance problem",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 11
+    }
+  },
+  {
+    "verbatim_id": "9e3ad89cb3a6",
+    "vin": "13",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Santa Fe Hybrid 4dr SUV",
+    "part": "",
+    "problem": "CLIMAT7: Air flow defective - Doesn’t direct air/flow effectively",
+    "trim": "",
+    "verbatim_text": "CLIMAT7: Air flow defective - Doesn’t direct air/flow effectively",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 12
+    }
+  },
+  {
+    "verbatim_id": "c659a4af7c21",
+    "vin": "14",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Santa Fe Hybrid 4dr SUV",
+    "part": "",
+    "problem": "DRAD4: Adaptive cruise control - Alerts annoying/bothersome",
+    "trim": "",
+    "verbatim_text": "DRAD4: Adaptive cruise control - Alerts annoying/bothersome",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 13
+    }
+  },
+  {
+    "verbatim_id": "3d3d7a8576cf",
+    "vin": "15",
+    "model_year": 2024,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Hyundai",
+    "model": "Santa Fe Hybrid 4dr SUV",
+    "part": "",
+    "problem": "CLIMAT9: Front heating/cooling controls/vents - DTU/poorly located",
+    "trim": "",
+    "verbatim_text": "CLIMAT9: Front heating/cooling controls/vents - DTU/poorly located",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 14
+    }
+  },
+  {
+    "verbatim_id": "530e246f4bbe",
+    "vin": "16",
+    "model_year": 2025,
+    "registration_date": "2024-01-01 00:00:00",
+    "ownership": "",
+    "make": "Kia",
+    "model": "Carnival 4dr Van",
+    "part": "",
+    "problem": "INFO15: Wireless charging pad - Wrong design/poorly located",
+    "trim": "",
+    "verbatim_text": "INFO15: Wireless charging pad - Wrong design/poorly located",
+    "metadata": {
+      "navigator_text": "",
+      "processed_at": "2025-10-17T02:45:34.061912",
+      "row_index": 15
+    }
+  }
+]
