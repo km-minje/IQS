@@ -1,0 +1,142 @@
+# Embedding models configuration
+embedding_models:
+
+  finetune_bge_m3_3:
+    name: "finetune BGE-M3"
+    path: "/home/jupyter/project/models/bge-m3_finetune3"
+    type: "flag"
+
+  reranker:
+    name: "reranker"
+    path: "/home/jupyter/project/models/bge-m3-reranker"
+    type: "reranker"
+
+# llm models configuration
+llm_models:
+
+  gemma3-4b:
+    name: "gemma3-4b"
+    path: "gemma3-4b"
+    type: "ollamachatmodel"
+    max_tokens: 512
+
+  # gemma3-4b:
+  #   name: "gemma3-4b"
+  #   path: "/home/jupyter/project/models/gemma3-4b"
+  #   type: "customchatmodel"
+  #   max_tokens: 512
+
+  # gemma3-4b:
+  #   name: "gemma3-4b"
+  #   path: "/home/jupyter/project/models/gemma3-4b"
+  #   type: "vllmchatmodel"
+  #   max_tokens: 512
+
+  # qwen7b:
+  #   name: "qwen7b"
+  #   path: "/home/jupyter/project/models/Qwen7B-Instruct"
+  #   type: "customchatmodel"
+  #   max_tokens: 512
+
+  # phi4reasoning:
+  #   name: "phi4reasoning"
+  #   path: "/home/jupyter/project/models/phi-4-reasoning"
+  #   type: "customchatmodel"
+  #   max_tokens: 128
+
+  # phi4reasoningmini:
+  #   name: "phi4reasoningmini"
+  #   path: "/home/jupyter/project/models/phi-4-reasoning-mini"
+  #   type: "customchatmodel"
+
+# Retrievers configuration
+retrievers:
+
+  faiss_finetune3:
+    name: "faiss_finetune3"
+    type: "faiss"
+    embedding_model: "finetune_bge_m3_3"
+    search_type: "mmr"
+    k: 5
+    instruction: True # encode_queries
+  
+  bm25_mecab:
+    name: "bm25_mecab"
+    type: "bm25"
+    tokenizer: "mecab"
+    k: 5
+    
+  # Ensemble retrievers
+  ensembles:
+
+    bc_finetune_5_5:
+      name: "bc_finetune_5_5"
+      retrievers: ["bm25_mecab", "faiss_finetune3"]
+      weights: [0.5, 0.5]
+      search_type: "mmr"
+      k: 5
+      c: 60.0
+
+# Rerank Retrievers
+# rerankers:
+#   rerank_bc_finetune_5_5:
+#     retriever: "bc_finetune_5_5"
+#     embedding_model: "reranker"
+        
+
+# Evaluation settings
+evaluation:
+  k: 5
+  metrics:
+    - ndcg
+    - recall
+    - rr
+
+# Check Consistency
+consistency:
+
+  # consistency_phi4_reasoning:
+  #   llm_model: phi4reasoning
+  #   retriever: bc_finetune_5_5
+  #   path_num: 5
+  #   k: 5
+  #   seed: 42
+
+  # consistency_phi4_reasoning_mini:
+  #   llm_model: phi4reasoningmini
+  #   retriever: bc_finetune_5_5
+  #   path_num: 5
+  #   k: 5
+  #   seed: 42
+
+  consistency_gemma3-4b-ollam:
+    llm_model: gemma3-4b
+    retriever: bc_finetune_5_5
+    path_num: 5
+    k: 5
+    seed: 42
+
+  # consistency_qwen7b:
+  #   llm_model: qwen7b
+  #   retriever: bc_finetune_5_5
+  #   path_num: 5
+  #   k: 5
+  #   seed: 40
+
+
+# Dataset paths
+datasets:
+  corpus: "/home/jupyter/project/datasets/hyundai/hyundai_corpus.jsonl"
+  queries: "/home/jupyter/project/datasets/hyundai/hyundai_queries.jsonl"
+  dev: "/home/jupyter/project/datasets/hyundai/hyundai_dev.jsonl"
+
+  # corpus: "/home/jupyter/llm-develop/datasets/hyundai/hyundai_corpus.jsonl"
+  # queries: "/home/jupyter/llm-develop/datasets/hyundai/hyundai_queries.jsonl"
+  # dev: "/home/jupyter/llm-develop/datasets/hyundai/hyundai_dev.jsonl"
+
+name: "hyundai"
+
+# Hardware settings
+hardware:
+  # cuda_devices: "0, 1, 2, 3"
+  cuda_devices: "0, 1"

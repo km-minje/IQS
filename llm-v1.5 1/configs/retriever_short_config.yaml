@@ -1,0 +1,247 @@
+
+
+# Embedding models configuration
+embedding_models:
+
+  flag_embedding:
+    name: "flag_embedding"
+    path: "models/bge-m3"
+    # path: "models/Qwen-Embedding-8B"
+    type: "flag"
+  
+  # sparse_embedding:
+  #   name: "sparse_embedding"
+  #   path: "models/bge-m3"
+  #   type: "sparse"
+
+  # colbert_embedding:
+  #   name: "colbert_embedding"
+  #   path: "models/bge-m3"
+  #   type: "colbert"
+
+  flag_reranker:
+     name: "flag_reranker"
+     path: "models/20250305_0.7_0.3_reranker"
+     type: "reranker"
+  
+  api_embedding:
+    name: "api_embedding"
+    model: "bge-m3-automotive-ft-v2"
+    url: "http://10.129.38.197/embedding-custom-bge-m3/v1"
+    api: "EMPTY"
+    type: "api_embedding"
+
+  api_reranker:
+    name: "api_reranker"
+    model: "bge-reranker-v2-m3-automotive-ft-v1"
+    url: "http://10.129.38.197/reranker/v1/score"
+    api: "EMPTY"
+    type: "api_reranker"
+
+  # es_reranker:
+  #   name: "es_reranker"
+  #   serving_model: "bge-reranker-v2-m3-automotive"
+  #   type: "es_reranker"
+
+# Retrievers configuration
+retrievers:
+
+  faiss_retriever:
+    name: "faiss_retriever"
+    type: "faiss"
+    embedding_model: "flag_embedding"
+    search_type: "mmr"
+    k: 5
+    instruction: False
+
+  # sparse_retriever:
+  #   name: "sparse_retriever"
+  #   type: "sparse"
+  #   embedding_model: "sparse_embedding"
+  #   search_type: "mmr"
+  #   k: 5
+  #   instruction: False
+
+  # colbert_retriever:
+  #   name: "colbert_retriever"
+  #   type: "colbert"
+  #   embedding_model: "colbert_embedding"
+  #   search_type: "mmr"
+  #   k: 5
+  #   instruction: False
+
+  api_embedding_retriever:
+    name: "api_embedding_retriever"
+    type: "faiss"
+    embedding_model: "api_embedding"
+    search_type: "mmr"
+    k: 10
+    instruction: False
+  
+  bm25_mecab:
+    name: "bm25_mecab"
+    type: "bm25"
+    tokenizer: "mecab"
+    k: 10
+
+  # es_bm25_retriever:
+  #   name: "es_bm25_mecab"
+  #   type: "es_bm25"
+  #   tokenizer: "mecab"
+  #   index: "hyundai_llm_short_32"
+  #   field: "text"
+  #   k: 10
+
+  # es_knn_retriever:
+  #   name: "es_knn_retriever"
+  #   type: "es_knn"
+  #   index: "hyundai_llm_short_32"
+  #   field: "text_embedding"
+  #   k: 10
+  #   embedding_model: "api_embedding"
+  #   # serving_model: "bge-m3-automotive-ft-v1"
+
+  # ensemble_es_55:
+  #   name: "ensemble_es_55"
+  #   type: "es_ensemble"
+  #   tokenizer: "mecab"
+  #   index: "hyundai_llm_short_32"
+  #   field: ["text", "text_embedding"]
+  #   weights: [0.3, 0.7]
+  #   c: 60.0
+  #   embedding_model: "api_embedding"
+  #   # serving_model: "bge-m3-automotive-ft-v1"
+
+  # Ensemble retrievers
+  ensembles:
+
+    # ensemble_37:
+    #   name: "ensemble_37"
+    #   retrievers: ["bm25_mecab", "faiss_retriever"]
+    #   weights: [0.3, 0.7]
+    #   search_type: "mmr"
+    #   k: 10
+    #   c: 60.0
+
+    ensemble_55:
+      name: "ensemble_55"
+      retrievers: ["bm25_mecab", "api_embedding_retriever"]
+      weights: [0.5, 0.5]
+      search_type: "mmr"
+      k: 10
+      c: 60.0
+
+    ensemble_37:
+      name: "ensemble_37"
+      retrievers: ["bm25_mecab", "api_embedding_retriever"]
+      weights: [0.3, 0.7]
+      search_type: "mmr"
+      k: 30
+      c: 30.0
+
+    ensemble_37_local:
+      name: "ensemble_37_local"
+      retrievers: ["bm25_mecab", "faiss_retriever"]
+      weights: [0.3, 0.7]
+      search_type: "mmr"
+      k: 30
+      c: 30.0
+
+    ensemble_28:
+      name: "ensemble_28"
+      retrievers: ["bm25_mecab", "api_embedding_retriever"]
+      weights: [0.2, 0.8]
+      search_type: "mmr"
+      k: 30
+      c: 30.0
+
+    ensemble_28_local:
+      name: "ensemble_28_loacl"
+      retrievers: ["bm25_mecab", "faiss_retriever"]
+      weights: [0.2, 0.8]
+      search_type: "mmr"
+      k: 30
+      c: 30.0
+
+    ensemble_19:
+      name: "ensemble_19"
+      retrievers: ["bm25_mecab", "api_embedding_retriever"]
+      weights: [0.1, 0.9]
+      search_type: "mmr"
+      k: 30
+      c: 30.0
+
+    ensemble_19_local:
+      name: "ensemble_19_local"
+      retrievers: ["bm25_mecab", "faiss_retriever"]
+      weights: [0.1, 0.9]
+      search_type: "mmr"
+      k: 30
+      c: 30.0
+
+# Rerank Retrievers
+rerankers:
+  # rerank_55:
+  #   retriever: "ensemble_55"
+  #   embedding_model: "api_reranker"
+
+  rerank_37:
+    retriever: "ensemble_37"
+    embedding_model: "api_reranker"
+
+  rerank_37_local:
+    retriever: "ensemble_37_local"
+    embedding_model: "flag_reranker"
+
+  rerank_28:
+    retriever: "ensemble_28"
+    embedding_model: "api_reranker"
+
+  rerank_28_local:
+    retriever: "ensemble_28_local"
+    embedding_model: "flag_reranker"
+
+  rerank_19:
+    retriever: "ensemble_19"
+    embedding_model: "api_reranker"
+
+  rerank_19_local:
+    retriever: "ensemble_19_local"
+    embedding_model: "flag_reranker"
+
+  # es_rerank_55:
+  #   retriever: "ensemble_es_55"
+  #   embedding_model: "es_reranker"      
+
+# Evaluation settings
+evaluation:
+  k: 4
+  k_rerank: 3
+  metrics:
+    - ndcg
+    - recall
+    - rr
+# Dataset paths
+datasets:
+  corpus: "make_datasets\\tests\\hyundai_corpus_short_v1.4.jsonl"
+  queries: "datasets\\hyundai_llm_1n_short\\hyundai_queries.jsonl"
+  dev: "datasets\\hyundai_llm_1n_short\\hyundai_dev.jsonl"
+
+  # corpus: "/home/jupyter/llm-v1.4/datasets/hyundai_llm/hyundai_corpus.jsonl"
+  # queries: "/home/jupyter/llm-v1.4/datasets/hyundai_llm/hyundai_queries.jsonl"
+  # dev: "/home/jupyter/llm-v1.4/datasets/hyundai_llm/hyundai_dev.jsonl"
+
+name: "hyundai"
+
+es:
+  host: 'http://localhost:9200'
+  id: 'elastic'
+  pw: 'elastic'
+
+
+# name: "hyundai_llm"
+# name: "hyundai_llm_divide"
+
+# Hardware settings
+hardware:
+  cuda_devices: "0, 1"

@@ -95,7 +95,8 @@ class ExcelDataLoader:
                 'Model Year',
                 'Make of Vehicle', 
                 'Model of Vehicle',
-                'Problem'
+                'Problem',
+                'Verbatim Text'
             ]
         
         missing_columns = set(required_columns) - set(self.df.columns)
@@ -192,32 +193,55 @@ class ExcelDataLoader:
         self.processed_data = []
         
         for idx, row in self.df.iterrows():
-            # Create document for each row
+            # Create document with ALL columns for comprehensive search
             doc = {
                 'verbatim_id': row.get('verbatim_id', ''),
-                'vin': str(row.get('VIN', '')),
-                'model_year': int(row.get('Model Year', 0)),
-                'registration_date': str(row.get('Registration Date', '')),
-                'ownership': str(row.get('Own Ownership', '')),
-                'make': str(row.get('Make of Vehicle', '')),
-                'model': str(row.get('Model of Vehicle', '')),
-                'part': str(row.get('Part', '')),
+                'row_index': idx,
+                'processed_at': row.get('processed_at', ''),
+                
+                # Main searchable text fields
+                'verbatim_text': str(row.get('Verbatim Text', '')),
                 'problem': str(row.get('Problem', '')),
-                'trim': str(row.get('Trim (Tracking)', '')),
-                
-                # Main verbatim text - this will be embedded
-                'verbatim_text': str(row.get('Problem', '')),
-                
-                # Additional metadata
-                'metadata': {
-                    'navigator_text': str(row.get('Navigator Text', '')),
-                    'processed_at': row.get('processed_at', ''),
-                    'row_index': idx
-                }
+                'problems_indicated': str(row.get('Problems Indicated', '')),
             }
             
-            # Only include documents with actual verbatim text
-            if doc['verbatim_text'] and doc['verbatim_text'] != '':
+            # Add ALL original columns as individual fields
+            for col in self.df.columns:
+                if col not in ['verbatim_id', 'processed_at', 'row_index']:  # Avoid duplicates
+                    # Clean column name for field name (replace spaces and special chars)
+                    field_name = col.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_').replace('-', '_')
+                    field_name = ''.join(c for c in field_name if c.isalnum() or c == '_')
+                    
+                    # Convert value to appropriate type
+                    value = row.get(col, '')
+                    if pd.isna(value) or value == 'nan':
+                        doc[field_name] = ''
+                    elif isinstance(value, (int, float)):
+                        doc[field_name] = value
+                    else:
+                        doc[field_name] = str(value)
+                        
+            # Create searchable text by combining key text fields
+            searchable_parts = []
+            text_fields = ['Verbatim Text', 'Problem', 'Problems Indicated', 'Model of Vehicle', 'Category', 'Sub Category']
+            for field in text_fields:
+                if field in row and pd.notna(row[field]) and str(row[field]) != 'nan':
+                    searchable_parts.append(str(row[field]))
+            
+            doc['_searchable_text'] = ' '.join(searchable_parts)
+            
+            # Include documents that have meaningful content
+            has_content = False
+            
+            # Check if document has any meaningful text content
+            if doc['verbatim_text'] and doc['verbatim_text'] not in ['', 'nan']:
+                has_content = True
+            elif doc['problem'] and doc['problem'] not in ['', 'nan']:
+                has_content = True
+            elif doc.get('_searchable_text', '').strip():
+                has_content = True
+                
+            if has_content:
                 self.processed_data.append(doc)
         
         log.success(f"Processed {len(self.processed_data)} documents for indexing")
@@ -261,7 +285,8 @@ class ExcelDataLoader:
             'unique_models': self.df['Model of Vehicle'].nunique() if 'Model of Vehicle' in self.df.columns else 0,
             'unique_years': self.df['Model Year'].nunique() if 'Model Year' in self.df.columns else 0,
             'unique_problems': self.df['Problem'].nunique() if 'Problem' in self.df.columns else 0,
-            'unique_parts': self.df['Part'].nunique() if 'Part' in self.df.columns else 0,
+            'unique_makes': self.df['Make of Vehicle'].nunique() if 'Make of Vehicle' in self.df.columns else 0,
+            'unique_categories': self.df['Category'].nunique() if 'Category' in self.df.columns else 0,
         }
         
         # Year distribution

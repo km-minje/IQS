@@ -1,433 +1,260 @@
 """
-Reranking module for improving search result relevance
+Deep Learning based Reranker using BGE-M3
+Replaces basic scoring with Cross-Encoder model
 """
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import numpy as np
 from datetime import datetime
-import re
 
-from src.search.semantic_search import SearchResult
+# 먼저 로거 임포트
 from src.utils.logger import log
+from src.search.semantic_search import SearchResult
+from config.settings import settings
 
+# 그 다음 FlagEmbedding 시도
+try:
+    from FlagEmbedding import FlagReranker
+    FLAGEMBEDDING_AVAILABLE = True
+except Exception as e:
+    log.warning(f"FlagEmbedding not available: {e}")
+    FlagReranker = None
+    FLAGEMBEDDING_AVAILABLE = False
 
 @dataclass
 class RerankScore:
     """Reranking score components"""
-    semantic_score: float
-    relevance_score: float
-    recency_score: float
-    metadata_score: float
-    total_score: float
+    deep_score: float      # FlagReranker 모델 점수
+    recency_score: float   # 최신성 점수
+    metadata_score: float  # 메타데이터 일치 점수
+    total_score: float     # 최종 합산 점수
     explanation: str
-
 
 class Reranker:
     """
-    Rerank search results using multiple signals
-    Combines semantic similarity with metadata and relevance features
+    Rerank search results using Cross-Encoder model (FlagReranker)
+    Combines Deep Learning score with Business Logic (Metadata/Recency)
     """
-    
-    def __init__(self, 
-                 weight_semantic: float = 0.4,
-                 weight_relevance: float = 0.3,
-                 weight_recency: float = 0.1,
-                 weight_metadata: float = 0.2):
-        """
-        Initialize reranker with score weights
+    def __init__(self):
+        """Initialize Reranker model with fallback support"""
+        self.model_path = getattr(settings, 'RERANKER_MODEL_PATH', 'BAAI/bge-reranker-v2-m3')
+        self.use_fp16 = getattr(settings, 'RERANKER_USE_FP16', False)
+        self.model = None
+        self.use_fallback = False
         
-        Args:
-            weight_semantic: Weight for semantic similarity score
-            weight_relevance: Weight for keyword relevance score
-            weight_recency: Weight for recency score
-            weight_metadata: Weight for metadata matching score
-        """
+        # FlagEmbedding 사용 가능한 경우 시도
+        if FLAGEMBEDDING_AVAILABLE and FlagReranker:
+            try:
+                log.info(f"Loading FlagReranker model: {self.model_path} (fp16={self.use_fp16})...")
+                self.model = FlagReranker(
+                    self.model_path,
+                    use_fp16=self.use_fp16
+                )
+                log.success("FlagReranker model loaded successfully")
+            except Exception as e:
+                log.error(f"Failed to load FlagReranker model: {e}")
+                log.warning("Falling back to basic text similarity reranker")
+                self.use_fallback = True
+        else:
+            log.warning("FlagEmbedding not available, using fallback reranker")
+            self.use_fallback = True
+        
+        # 폴백 리랭커 초기화
+        if self.use_fallback:
+            from src.reranker.fallback_reranker import FallbackReranker
+            self.fallback_reranker = FallbackReranker()
+
+        # 가중치 설정 (딥러닝 모델 점수를 가장 중요하게 반영)
         self.weights = {
-            'semantic': weight_semantic,
-            'relevance': weight_relevance,
-            'recency': weight_recency,
-            'metadata': weight_metadata
+            'deep_score': 0.7,   # 문맥 유사도 (핵심)
+            'metadata': 0.2,     # 차종/부품 일치 여부
+            'recency': 0.1       # 최신 데이터 우대
         }
-        
-        # Normalize weights
-        total_weight = sum(self.weights.values())
-        self.weights = {k: v/total_weight for k, v in self.weights.items()}
-        
-        log.info(f"Initialized Reranker with weights: {self.weights}")
-    
-    def rerank(self, 
-               results: List[SearchResult],
-               query: str,
-               query_plan: Optional[Dict[str, Any]] = None,
-               top_k: int = 20) -> List[Tuple[SearchResult, RerankScore]]:
+
+    def rerank(self,
+            results: List[SearchResult],
+            query: str,
+            query_plan: Optional[Dict[str, Any]] = None,
+            top_k: int = 20) -> List[Tuple[SearchResult, RerankScore]]:
         """
-        Rerank search results
-        
-        Args:
-            results: Initial search results
-            query: Original query
-            query_plan: Query plan with entities and filters
-            top_k: Number of top results to return
-        
-        Returns:
-            List of (result, score) tuples sorted by relevance
+        Execute reranking pipeline with fallback support
         """
         if not results:
             return []
         
-        # Calculate scores for each result
-        scored_results = []
-        
-        for result in results:
-            score = self._calculate_score(result, query, query_plan)
-            scored_results.append((result, score))
-        
-        # Sort by total score (descending)
-        scored_results.sort(key=lambda x: x[1].total_score, reverse=True)
-        
-        # Return top k results
-        return scored_results[:top_k]
+        # 폴백 모드인 경우 폴백 리랭커 사용
+        if self.use_fallback:
+            return self.fallback_reranker.rerank(results, query, query_plan, top_k)
+
+        # FlagReranker 사용
+        return self._rerank_with_flag_embedding(results, query, query_plan, top_k)
     
-    def _calculate_score(self, 
-                        result: SearchResult,
-                        query: str,
-                        query_plan: Optional[Dict[str, Any]] = None) -> RerankScore:
+    def _rerank_with_flag_embedding(self,
+            results: List[SearchResult],
+            query: str,
+            query_plan: Optional[Dict[str, Any]] = None,
+            top_k: int = 20) -> List[Tuple[SearchResult, RerankScore]]:
         """
-        Calculate comprehensive reranking score
-        
-        Args:
-            result: Search result
-            query: Original query
-            query_plan: Query plan with extracted entities
-        
-        Returns:
-            RerankScore with component scores
+        FlagEmbedding을 사용한 리랭킹
         """
-        # 1. Semantic similarity score (from initial search)
-        semantic_score = result.score
-        
-        # 2. Keyword relevance score
-        relevance_score = self._calculate_relevance_score(
-            result.matched_text, 
-            query
-        )
-        
-        # 3. Recency score
-        recency_score = self._calculate_recency_score(
-            result.content
-        )
-        
-        # 4. Metadata matching score
-        metadata_score = self._calculate_metadata_score(
-            result.content,
-            query_plan
-        )
-        
-        # Calculate weighted total
-        total_score = (
-            self.weights['semantic'] * semantic_score +
-            self.weights['relevance'] * relevance_score +
-            self.weights['recency'] * recency_score +
-            self.weights['metadata'] * metadata_score
-        )
-        
-        # Generate explanation
-        explanation = self._generate_explanation(
-            semantic_score, relevance_score, recency_score, metadata_score
-        )
-        
-        return RerankScore(
-            semantic_score=semantic_score,
-            relevance_score=relevance_score,
-            recency_score=recency_score,
-            metadata_score=metadata_score,
-            total_score=total_score,
-            explanation=explanation
-        )
-    
-    def _calculate_relevance_score(self, text: str, query: str) -> float:
-        """
-        Calculate keyword relevance score
-        
-        Args:
-            text: Document text
-            query: Search query
-        
-        Returns:
-            Relevance score [0, 1]
-        """
-        if not text or not query:
-            return 0.0
-        
-        text_lower = text.lower()
-        query_lower = query.lower()
-        
-        # Extract query terms
-        query_terms = set(query_lower.split())
-        
-        # Count exact matches
-        exact_matches = sum(1 for term in query_terms if term in text_lower)
-        
-        # Count partial matches
-        partial_matches = sum(
-            1 for term in query_terms 
-            if any(term in word for word in text_lower.split())
-        )
-        
-        # Calculate score
-        if len(query_terms) == 0:
-            return 0.0
-        
-        exact_score = exact_matches / len(query_terms)
-        partial_score = partial_matches / len(query_terms)
-        
-        # Weighted combination (exact matches worth more)
-        score = 0.7 * exact_score + 0.3 * partial_score
-        
-        return min(1.0, score)
-    
-    def _calculate_recency_score(self, content: Dict[str, Any]) -> float:
-        """
-        Calculate recency score based on date
-        
-        Args:
-            content: Document content
-        
-        Returns:
-            Recency score [0, 1]
-        """
-        # Get registration date or model year
-        date_str = content.get('registration_date', '')
-        model_year = content.get('model_year', 0)
-        
-        if date_str:
-            try:
-                # Parse date
-                if isinstance(date_str, str):
-                    # Try different date formats
-                    for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y/%m/%d']:
-                        try:
-                            doc_date = datetime.strptime(date_str, fmt)
-                            break
-                        except:
-                            continue
-                    else:
-                        # If no format works, use model year
-                        if model_year:
-                            doc_date = datetime(model_year, 1, 1)
-                        else:
-                            return 0.5  # Default middle score
-                else:
-                    return 0.5
-                
-                # Calculate days since document
-                days_old = (datetime.now() - doc_date).days
-                
-                # Score based on age (newer = higher score)
-                # Documents < 30 days: score 1.0
-                # Documents > 365 days: score 0.2
-                if days_old < 30:
-                    return 1.0
-                elif days_old < 90:
-                    return 0.8
-                elif days_old < 180:
-                    return 0.6
-                elif days_old < 365:
-                    return 0.4
-                else:
-                    return 0.2
-                    
-            except Exception as e:
-                log.debug(f"Failed to parse date: {e}")
-                return 0.5
-        
-        elif model_year:
-            # Score based on model year
-            current_year = datetime.now().year
-            years_old = current_year - model_year
+
+        # 1. 딥러닝 모델 입력을 위한 Pair 생성 (Query, Document)
+        pairs = []
+        valid_indices = []
+
+        for i, result in enumerate(results):
+            # 매칭된 텍스트가 없으면 본문 전체 사용
+            text = result.matched_text if result.matched_text else str(result.content.get('problem', ''))
+            if text.strip():
+                pairs.append([query, text])
+                valid_indices.append(i)
+
+        if not pairs:
+            return []
+
+        # 2. FlagReranker 점수 계산 (Batch processing)
+        try:
+            log.debug(f"Computing scores for {len(pairs)} pairs...")
+            # normalize=True로 0~1 사이 점수 반환 유도
+            deep_scores = self.model.compute_score(pairs, normalize=True)
             
-            if years_old <= 0:
-                return 1.0
-            elif years_old == 1:
-                return 0.8
-            elif years_old == 2:
-                return 0.6
-            elif years_old == 3:
-                return 0.4
+            log.debug(f"Deep scores type: {type(deep_scores)}, value: {deep_scores}")
+
+            # 결과가 하나일 때 float로 반환되는 경우 처리
+            if isinstance(deep_scores, float):
+                deep_scores = [deep_scores]
+            elif isinstance(deep_scores, (list, tuple, np.ndarray)):
+                # numpy array나 리스트인 경우 float로 변환
+                deep_scores = [float(score) for score in deep_scores]
             else:
-                return 0.2
-        
-        return 0.5  # Default middle score
-    
-    def _calculate_metadata_score(self, 
-                                 content: Dict[str, Any],
-                                 query_plan: Optional[Dict[str, Any]] = None) -> float:
+                log.warning(f"Unexpected deep_scores type: {type(deep_scores)}")
+                deep_scores = [0.5] * len(pairs)  # 기본값으로 처리
+
+        except Exception as e:
+            log.error(f"FlagReranker computation failed: {e}")
+            log.warning("Falling back to basic text similarity")
+            # 폴백 모드로 전환
+            self.use_fallback = True
+            if not hasattr(self, 'fallback_reranker'):
+                from src.reranker.fallback_reranker import FallbackReranker
+                self.fallback_reranker = FallbackReranker()
+            return self.fallback_reranker.rerank(results, query, query_plan, top_k)
+
+        # 3. 비즈니스 로직 점수와 결합 (Ensemble)
+        final_results = []
+
+        for idx, original_idx in enumerate(valid_indices):
+            result = results[original_idx]
+            d_score = deep_scores[idx]
+            
+            log.debug(f"Processing result {idx}: d_score={d_score}, type={type(d_score)}")
+            
+            # 점수가 문자열인 경우 float로 변환
+            try:
+                if isinstance(d_score, str):
+                    d_score = float(d_score)
+                elif not isinstance(d_score, (int, float)):
+                    log.warning(f"Converting unexpected score type: {type(d_score)}")
+                    d_score = float(d_score)
+            except (ValueError, TypeError) as e:
+                log.error(f"Score conversion failed: {e}, using default 0.5")
+                d_score = 0.5
+
+            # 메타데이터/최신성 점수 계산 (기존 로직 유지)
+            metadata_score = self._calculate_metadata_score(result.content, query_plan)
+            recency_score = self._calculate_recency_score(result.content)
+
+            # 최종 가중치 합산
+            total_score = (
+                self.weights['deep_score'] * float(d_score) +
+                self.weights['metadata'] * float(metadata_score) +
+                self.weights['recency'] * float(recency_score)
+            )
+
+            explanation = self._generate_explanation(d_score, metadata_score)
+
+            score_obj = RerankScore(
+                deep_score=d_score,
+                recency_score=recency_score,
+                metadata_score=metadata_score,
+                total_score=total_score,
+                explanation=explanation
+            )
+
+            final_results.append((result, score_obj))
+
+        # 4. 점수순 정렬
+        final_results.sort(key=lambda x: x[1].total_score, reverse=True)
+
+        return final_results[:top_k]
+
+    def _calculate_metadata_score(self, content: Dict[str, Any], query_plan: Optional[Dict[str, Any]]) -> float:
         """
-        Calculate metadata matching score
-        
-        Args:
-            content: Document content
-            query_plan: Query plan with extracted entities
-        
-        Returns:
-            Metadata score [0, 1]
+        메타데이터(차종, 연식 등) 일치 여부 확인
         """
         if not query_plan or 'entities' not in query_plan:
-            return 0.5  # Default middle score
-        
+            return 0.5
+
         entities = query_plan.get('entities', {})
         if not entities:
             return 0.5
-        
+
         matches = 0
         total_checks = 0
-        
-        # Check model match
-        if 'model' in entities:
+
+        # 차종 (Model) 확인
+        if entities.get('model'):
             total_checks += 1
-            if content.get('model', '').lower() == entities['model'].lower():
+            if str(content.get('model', '')).lower() == str(entities['model']).lower():
                 matches += 1
-        
-        # Check year match
-        if 'year' in entities:
+
+        # 연식 (Year) 확인
+        if entities.get('year'):
             total_checks += 1
-            if content.get('model_year') == entities['year']:
+            if str(content.get('model_year')) == str(entities['year']):
                 matches += 1
-        
-        # Check part match
-        if 'part' in entities:
+
+        # 부품/증상 키워드 포함 여부 (Metadata field에서)
+        if entities.get('parts'):
             total_checks += 1
-            doc_text = (content.get('problem', '') + ' ' + 
-                       content.get('verbatim_text', '')).lower()
-            if entities['part'].lower() in doc_text:
-                matches += 1
-        
-        # Calculate score
+            doc_text = str(content).lower()
+            for part in entities['parts']:
+                if part.lower() in doc_text:
+                    matches += 1
+                    break
+
         if total_checks == 0:
             return 0.5
-        
+
         return matches / total_checks
-    
-    def _generate_explanation(self, 
-                             semantic: float,
-                             relevance: float,
-                             recency: float,
-                             metadata: float) -> str:
+
+    def _calculate_recency_score(self, content: Dict[str, Any]) -> float:
         """
-        Generate explanation for reranking score
-        
-        Args:
-            semantic: Semantic score
-            relevance: Relevance score
-            recency: Recency score
-            metadata: Metadata score
-        
-        Returns:
-            Human-readable explanation
+        최신 데이터 우대 로직 (2024, 2025 등 최신 연식)
         """
-        explanation = []
-        
-        if semantic > 0.8:
-            explanation.append("High semantic similarity")
-        elif semantic > 0.5:
-            explanation.append("Moderate semantic similarity")
-        
-        if relevance > 0.8:
-            explanation.append("Strong keyword match")
-        elif relevance > 0.5:
-            explanation.append("Partial keyword match")
-        
-        if recency > 0.8:
-            explanation.append("Very recent")
-        elif recency < 0.3:
-            explanation.append("Older document")
-        
-        if metadata > 0.8:
-            explanation.append("Exact metadata match")
-        elif metadata > 0.5:
-            explanation.append("Partial metadata match")
-        
-        return "; ".join(explanation) if explanation else "Standard ranking"
+        try:
+            model_year = int(content.get('model_year', 0))
+            current_year = datetime.now().year
 
+            if model_year >= current_year:
+                return 1.0
+            elif model_year == current_year - 1:
+                return 0.8
+            elif model_year == current_year - 2:
+                return 0.6
+            else:
+                return 0.4
+        except:
+            return 0.5
 
-def test_reranker():
-    """Test reranker functionality"""
-    
-    print("=" * 70)
-    print("Testing Reranker")
-    print("=" * 70)
-    
-    # Create sample search results
-    results = [
-        SearchResult(
-            doc_id="001",
-            score=0.85,
-            content={
-                "model": "Santa Fe",
-                "model_year": 2024,
-                "registration_date": "2024-01-15",
-                "problem": "Tire slips on wet roads"
-            },
-            matched_text="Tire slips on wet roads"
-        ),
-        SearchResult(
-            doc_id="002",
-            score=0.75,
-            content={
-                "model": "Tucson",
-                "model_year": 2023,
-                "registration_date": "2023-06-20",
-                "problem": "Wheel alignment issues"
-            },
-            matched_text="Wheel alignment issues"
-        ),
-        SearchResult(
-            doc_id="003",
-            score=0.80,
-            content={
-                "model": "Santa Fe",
-                "model_year": 2025,
-                "registration_date": "2025-01-01",
-                "problem": "Tire pressure warning"
-            },
-            matched_text="Tire pressure warning"
-        )
-    ]
-    
-    # Create query plan
-    query = "tire problems Santa Fe 2024"
-    query_plan = {
-        'entities': {
-            'model': 'Santa Fe',
-            'year': 2024,
-            'part': 'tire'
-        }
-    }
-    
-    # Initialize reranker
-    reranker = Reranker()
-    
-    # Rerank results
-    print(f"\nQuery: {query}")
-    print("\nOriginal ranking:")
-    for i, result in enumerate(results, 1):
-        print(f"  {i}. Score: {result.score:.3f} - {result.matched_text}")
-    
-    reranked = reranker.rerank(results, query, query_plan)
-    
-    print("\nReranked results:")
-    for i, (result, score) in enumerate(reranked, 1):
-        print(f"  {i}. Total: {score.total_score:.3f}")
-        print(f"     Text: {result.matched_text}")
-        print(f"     Components: S={score.semantic_score:.2f}, "
-              f"R={score.relevance_score:.2f}, "
-              f"T={score.recency_score:.2f}, "
-              f"M={score.metadata_score:.2f}")
-        print(f"     Explanation: {score.explanation}")
-    
-    print("\n" + "=" * 70)
-    print("Reranker test complete!")
+    def _generate_explanation(self, deep_score: float, metadata_score: float) -> str:
+        parts = []
+        if deep_score > 0.7:
+            parts.append("High context match")
+        elif deep_score < 0.3:
+            parts.append("Low context match")
 
+        if metadata_score > 0.8:
+            parts.append("Exact metadata match")
 
-if __name__ == "__main__":
-    test_reranker()
+        return ", ".join(parts) if parts else "Standard match"
